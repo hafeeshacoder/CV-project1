@@ -1,7 +1,0 @@
-streamlit
-opencv-python
-dlib
-numpy
-scipy
-playsound
-imutils
