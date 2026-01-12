@@ -7,7 +7,7 @@ from streamlit_webrtc import webrtc_streamer, VideoProcessorBase
 st.set_page_config(page_title="Multi Color Detection", layout="wide")
 
 st.title("🎨 Multi-Color Detection using OpenCV")
-st.write("Detect colors from **Image Upload** or **Live Camera**")
+st.write("Detect colors from Image Upload or Live Camera")
 
 # ---------------- COLOR RANGES (HSV) ---------------- #
 COLOR_RANGES = {
@@ -21,7 +21,7 @@ COLOR_RANGES = {
     "Black": [(0, 0, 0), (180, 255, 30)]
 }
 
-# ---------------- IMAGE COLOR DETECTION FUNCTION ---------------- #
+# ---------------- COLOR DETECTION FUNCTION ---------------- #
 def detect_colors(image):
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     detected_colors = []
@@ -29,69 +29,74 @@ def detect_colors(image):
     for color, (lower, upper) in COLOR_RANGES.items():
         lower = np.array(lower)
         upper = np.array(upper)
-        mask = cv2.inRange(hsv, lower, upper)
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        if contours:
-            for cnt in contours:
-                area = cv2.contourArea(cnt)
-                if area > 800:
-                    x, y, w, h = cv2.boundingRect(cnt)
-                    cv2.rectangle(image, (x, y), (x+w, y+h), (0,255,0), 2)
-                    cv2.putText(image, color, (x, y-10),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 2)
-                    detected_colors.append(color)
-                    break
+        mask = cv2.inRange(hsv, lower, upper)
+        contours, _ = cv2.findContours(
+            mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+
+        for cnt in contours:
+            area = cv2.contourArea(cnt)
+            if area > 800:
+                x, y, w, h = cv2.boundingRect(cnt)
+                cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                cv2.putText(
+                    image,
+                    color,
+                    (x, y - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.6,
+                    (0, 255, 0),
+                    2
+                )
+                detected_colors.append(color)
+                break
 
     return image, list(set(detected_colors))
 
-# ---------------- OPTION SELECTION ---------------- #
+# ---------------- SIDEBAR OPTION ---------------- #
 option = st.sidebar.radio(
     "Choose Detection Mode",
-    ("📁 Upload Image", "🎥 Live Camera")
+    ("Upload Image", "Live Camera")
 )
 
-# ---------------- IMAGE UPLOAD OPTION ---------------- #
-if option == "📁 Upload Image":
+# ---------------- IMAGE UPLOAD ---------------- #
+if option == "Upload Image":
     st.subheader("📁 Upload Image for Color Detection")
 
-    uploaded_file = st.file_uploader("Upload an Image", type=["jpg", "png", "jpeg"])
+    uploaded_file = st.file_uploader(
+        "Upload an Image", type=["jpg", "jpeg", "png"]
+    )
 
-    if uploaded_file:
+    if uploaded_file is not None:
         image = Image.open(uploaded_file)
         image_np = np.array(image)
         image_bgr = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
 
         output_image, colors = detect_colors(image_bgr)
 
-        st.image(cv2.cvtColor(output_image, cv2.COLOR_BGR2RGB),
-                 caption="Detected Colors", use_column_width=True)
+        st.image(
+            cv2.cvtColor(output_image, cv2.COLOR_BGR2RGB),
+            caption="Detected Colors",
+            use_column_width=True
+        )
 
-        st.success(f"🎯 Number of Colors Detected: {len(colors)}")
-        st.write("🖌 Detected Colors:", colors)
+        st.success(f"Number of Colors Detected: {len(colors)}")
+        st.write("Detected Colors:", colors)
 
-# ---------------- LIVE CAMERA OPTION ---------------- #
+# ---------------- LIVE CAMERA ---------------- #
 class VideoProcessor(VideoProcessorBase):
     def recv(self, frame):
         img = frame.to_ndarray(format="bgr24")
-        processed_img, colors = detect_colors(img)
+        processed_img, _ = detect_colors(img)
         return processed_img
 
-if option == "🎥 Live Camera":
+if option == "Live Camera":
     st.subheader("🎥 Live Camera Color Detection")
-    st.info("Allow camera access when prompted")
+    st.info("Allow camera permission when prompted")
 
     webrtc_streamer(
         key="color-detection",
         video_processor_factory=VideoProcessor,
         media_stream_constraints={"video": True, "audio": False},
     )
-
-    st.write("🟢 Detects multiple colors in real time")
-
----
-
-## ▶ How to Run the Project
-
-```bash
-streamlit run app.py
