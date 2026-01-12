@@ -6,7 +6,6 @@ st.set_page_config(page_title="Multi Color Detection", layout="wide")
 
 st.title("🎨 Multi-Color Detection (Image Upload)")
 st.write("Detect multiple colors from an uploaded image")
-st.info("OpenCV removed for cloud stability")
 
 # ---------------- COLOR DEFINITIONS (RGB) ---------------- #
 COLORS = {
@@ -48,3 +47,4 @@ if uploaded_file:
     st.success(f"Number of Colors Detected: {len(colors_found)}")
     st.write("Detected Colors:")
     st.write(colors_found)
+
