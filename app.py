@@ -7,9 +7,9 @@ from streamlit_webrtc import webrtc_streamer, VideoProcessorBase
 st.set_page_config(page_title="Multi Color Detection", layout="wide")
 
 st.title("🎨 Multi-Color Detection using OpenCV")
-st.write("Detect colors from Image Upload or Live Camera")
+st.write("Detect multiple colors from Image Upload or Live Camera")
 
-# ---------------- COLOR RANGES (HSV) ---------------- #
+# ================= COLOR RANGES (HSV) ================= #
 COLOR_RANGES = {
     "Red": [(0, 120, 70), (10, 255, 255)],
     "Green": [(40, 70, 70), (80, 255, 255)],
@@ -21,12 +21,12 @@ COLOR_RANGES = {
     "Black": [(0, 0, 0), (180, 255, 30)]
 }
 
-# ---------------- COLOR DETECTION FUNCTION ---------------- #
+# ================= COLOR DETECTION FUNCTION ================= #
 def detect_colors(image):
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     detected_colors = []
 
-    for color, (lower, upper) in COLOR_RANGES.items():
+    for color_name, (lower, upper) in COLOR_RANGES.items():
         lower = np.array(lower)
         upper = np.array(upper)
 
@@ -42,34 +42,34 @@ def detect_colors(image):
                 cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
                 cv2.putText(
                     image,
-                    color,
+                    color_name,
                     (x, y - 10),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.6,
                     (0, 255, 0),
                     2
                 )
-                detected_colors.append(color)
+                detected_colors.append(color_name)
                 break
 
     return image, list(set(detected_colors))
 
-# ---------------- SIDEBAR OPTION ---------------- #
-option = st.sidebar.radio(
-    "Choose Detection Mode",
-    ("Upload Image", "Live Camera")
+# ================= SIDEBAR ================= #
+mode = st.sidebar.radio(
+    "Select Mode",
+    ["Upload Image", "Live Camera"]
 )
 
-# ---------------- IMAGE UPLOAD ---------------- #
-if option == "Upload Image":
-    st.subheader("📁 Upload Image for Color Detection")
+# ================= IMAGE UPLOAD MODE ================= #
+if mode == "Upload Image":
+    st.subheader("📁 Image Upload Color Detection")
 
     uploaded_file = st.file_uploader(
-        "Upload an Image", type=["jpg", "jpeg", "png"]
+        "Upload an image", type=["jpg", "jpeg", "png"]
     )
 
     if uploaded_file is not None:
-        image = Image.open(uploaded_file)
+        image = Image.open(uploaded_file).convert("RGB")
         image_np = np.array(image)
         image_bgr = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
 
@@ -84,16 +84,16 @@ if option == "Upload Image":
         st.success(f"Number of Colors Detected: {len(colors)}")
         st.write("Detected Colors:", colors)
 
-# ---------------- LIVE CAMERA ---------------- #
+# ================= LIVE CAMERA MODE ================= #
 class VideoProcessor(VideoProcessorBase):
     def recv(self, frame):
         img = frame.to_ndarray(format="bgr24")
         processed_img, _ = detect_colors(img)
         return processed_img
 
-if option == "Live Camera":
+if mode == "Live Camera":
     st.subheader("🎥 Live Camera Color Detection")
-    st.info("Allow camera permission when prompted")
+    st.info("Allow camera permission in browser")
 
     webrtc_streamer(
         key="color-detection",
