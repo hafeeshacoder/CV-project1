@@ -12,9 +12,9 @@ st.set_page_config(
 # ---------- HEADER ----------
 st.markdown(
     """
-    <h1 style='text-align: center;'>🎨 Multi-Color Detection System</h1>
-    <h4 style='text-align: center; color: gray;'>
-    Detect multiple colors from an uploaded image
+    <h1 style='text-align:center;'>🎨 Multi-Color Detection System</h1>
+    <h4 style='text-align:center; color:gray;'>
+    Upload an image & discover the colors inside
     </h4>
     """,
     unsafe_allow_html=True
@@ -22,11 +22,8 @@ st.markdown(
 
 st.markdown("---")
 
-# ---------- INFO BOX ----------
-st.info(
-    "📌 Upload an image containing multiple colors. "
-    "The system will automatically identify and list the colors present."
-)
+# ---------- INFO ----------
+st.info("📌 Upload a colorful image. The system automatically identifies dominant colors.")
 
 # ---------------- COLOR DEFINITIONS (RGB) ---------------- #
 COLORS = {
@@ -59,9 +56,15 @@ left, right = st.columns([1, 1])
 with left:
     st.subheader("📁 Upload Image")
     uploaded_file = st.file_uploader(
-        "Choose an image file",
+        "Choose an image (JPG / PNG)",
         type=["jpg", "jpeg", "png"]
     )
+
+    with st.expander("🧠 How this works"):
+        st.write(
+            "The image is converted into pixels. "
+            "Sampled pixels are checked using RGB rules to identify colors."
+        )
 
 # ---------------- OUTPUT ---------------- #
 with right:
@@ -73,27 +76,82 @@ with right:
 
         colors_found = detect_colors(image_array)
 
-        st.image(
-            image,
-            caption="🖼 Uploaded Image",
-            use_column_width=True
-        )
+        st.image(image, caption="🖼 Uploaded Image", use_column_width=True)
+
+        # 🎉 Celebration animation
+        if colors_found:
+            st.balloons()
 
         st.success(f"🎯 Number of Colors Detected: {len(colors_found)}")
 
+        # 📊 Progress bar
+        st.progress(min(len(colors_found) / len(COLORS), 1.0))
+
         if colors_found:
             st.markdown("### 🎨 Detected Colors")
+
+            # 🎯 Color badges
             for color in colors_found:
-                st.write(f"✔ {color}")
+                st.markdown(
+                    f"""
+                    <span style="
+                        background-color:#222;
+                        padding:8px 14px;
+                        border-radius:20px;
+                        margin:4px;
+                        display:inline-block;
+                        color:white;
+                        font-weight:bold;">
+                        {color}
+                    </span>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+            # 🎨 Color palette preview
+            st.markdown("### 🖌 Color Palette")
+            cols = st.columns(len(colors_found))
+            color_map = {
+                "Red": "#FF0000",
+                "Green": "#00FF00",
+                "Blue": "#0000FF",
+                "Yellow": "#FFFF00",
+                "Black": "#000000",
+                "White": "#FFFFFF",
+                "Orange": "#FFA500",
+                "Purple": "#800080"
+            }
+
+            for col, color in zip(cols, colors_found):
+                with col:
+                    st.markdown(
+                        f"""
+                        <div style="
+                            background-color:{color_map.get(color, '#ccc')};
+                            height:80px;
+                            border-radius:10px;
+                            border:2px solid #333;">
+                        </div>
+                        <p style='text-align:center; font-weight:bold;'>{color}</p>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
         else:
             st.warning("No dominant colors detected.")
 
-# ---------- FOOTER ----------
+# ---------- TIPS ----------
 st.markdown("---")
+st.success(
+    "💡 Tip: Use images with bright lighting and clear color regions "
+    "for best detection results."
+)
+
+# ---------- FOOTER ----------
 st.markdown(
     """
-    <div style='text-align: center; color: gray;'>
-    🧠 Mini Project | Computer Vision | Multi-Color Detection  
+    <div style='text-align:center; color:gray;'>
+    🚀 Computer Vision Mini Project | Multi-Color Detection
     </div>
     """,
     unsafe_allow_html=True
