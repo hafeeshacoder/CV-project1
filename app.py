@@ -1,102 +1,44 @@
 import streamlit as st
-import cv2
 import numpy as np
 from PIL import Image
-from streamlit_webrtc import webrtc_streamer, VideoProcessorBase
 
 st.set_page_config(page_title="Multi Color Detection", layout="wide")
 
-st.title("🎨 Multi-Color Detection using OpenCV")
-st.write("Detect multiple colors from Image Upload or Live Camera")
+st.title("🎨 Multi-Color Detection (Image Upload Only)")
+st.warning("Live camera disabled for cloud stability")
 
-# ================= COLOR RANGES (HSV) ================= #
+# Import cv2 ONLY after Streamlit loads
+import cv2
+
 COLOR_RANGES = {
     "Red": [(0, 120, 70), (10, 255, 255)],
     "Green": [(40, 70, 70), (80, 255, 255)],
     "Blue": [(100, 150, 50), (140, 255, 255)],
     "Yellow": [(20, 100, 100), (30, 255, 255)],
-    "Orange": [(10, 100, 20), (20, 255, 255)],
-    "Purple": [(125, 50, 50), (150, 255, 255)],
+    "Black": [(0, 0, 0), (180, 255, 30)],
     "White": [(0, 0, 200), (180, 50, 255)],
-    "Black": [(0, 0, 0), (180, 255, 30)]
 }
 
-# ================= COLOR DETECTION FUNCTION ================= #
 def detect_colors(image):
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    detected_colors = []
+    found = []
 
-    for color_name, (lower, upper) in COLOR_RANGES.items():
-        lower = np.array(lower)
-        upper = np.array(upper)
+    for name, (low, high) in COLOR_RANGES.items():
+        mask = cv2.inRange(hsv, np.array(low), np.array(high))
+        if cv2.countNonZero(mask) > 1500:
+            found.append(name)
 
-        mask = cv2.inRange(hsv, lower, upper)
-        contours, _ = cv2.findContours(
-            mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-        )
+    return list(set(found))
 
-        for cnt in contours:
-            area = cv2.contourArea(cnt)
-            if area > 800:
-                x, y, w, h = cv2.boundingRect(cnt)
-                cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                cv2.putText(
-                    image,
-                    color_name,
-                    (x, y - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.6,
-                    (0, 255, 0),
-                    2
-                )
-                detected_colors.append(color_name)
-                break
+uploaded = st.file_uploader("Upload Image", type=["jpg", "png", "jpeg"])
 
-    return image, list(set(detected_colors))
+if uploaded:
+    img = Image.open(uploaded).convert("RGB")
+    img_np = np.array(img)
+    img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
 
-# ================= SIDEBAR ================= #
-mode = st.sidebar.radio(
-    "Select Mode",
-    ["Upload Image", "Live Camera"]
-)
+    colors = detect_colors(img_bgr)
 
-# ================= IMAGE UPLOAD MODE ================= #
-if mode == "Upload Image":
-    st.subheader("📁 Image Upload Color Detection")
-
-    uploaded_file = st.file_uploader(
-        "Upload an image", type=["jpg", "jpeg", "png"]
-    )
-
-    if uploaded_file is not None:
-        image = Image.open(uploaded_file).convert("RGB")
-        image_np = np.array(image)
-        image_bgr = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
-
-        output_image, colors = detect_colors(image_bgr)
-
-        st.image(
-            cv2.cvtColor(output_image, cv2.COLOR_BGR2RGB),
-            caption="Detected Colors",
-            use_column_width=True
-        )
-
-        st.success(f"Number of Colors Detected: {len(colors)}")
-        st.write("Detected Colors:", colors)
-
-# ================= LIVE CAMERA MODE ================= #
-class VideoProcessor(VideoProcessorBase):
-    def recv(self, frame):
-        img = frame.to_ndarray(format="bgr24")
-        processed_img, _ = detect_colors(img)
-        return processed_img
-
-if mode == "Live Camera":
-    st.subheader("🎥 Live Camera Color Detection")
-    st.info("Allow camera permission in browser")
-
-    webrtc_streamer(
-        key="color-detection",
-        video_processor_factory=VideoProcessor,
-        media_stream_constraints={"video": True, "audio": False},
-    )
+    st.image(img, caption="Uploaded Image", use_column_width=True)
+    st.success(f"Detected {len(colors)} colors")
+    st.write(colors)
