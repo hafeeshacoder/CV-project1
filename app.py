@@ -4,41 +4,47 @@ from PIL import Image
 
 st.set_page_config(page_title="Multi Color Detection", layout="wide")
 
-st.title("🎨 Multi-Color Detection (Image Upload Only)")
-st.warning("Live camera disabled for cloud stability")
+st.title("🎨 Multi-Color Detection (Image Upload)")
+st.write("Detect multiple colors from an uploaded image")
+st.info("OpenCV removed for cloud stability")
 
-# Import cv2 ONLY after Streamlit loads
-import cv2
-
-COLOR_RANGES = {
-    "Red": [(0, 120, 70), (10, 255, 255)],
-    "Green": [(40, 70, 70), (80, 255, 255)],
-    "Blue": [(100, 150, 50), (140, 255, 255)],
-    "Yellow": [(20, 100, 100), (30, 255, 255)],
-    "Black": [(0, 0, 0), (180, 255, 30)],
-    "White": [(0, 0, 200), (180, 50, 255)],
+# ---------------- COLOR DEFINITIONS (RGB) ---------------- #
+COLORS = {
+    "Red": lambda r, g, b: r > 150 and g < 100 and b < 100,
+    "Green": lambda r, g, b: g > 150 and r < 100 and b < 100,
+    "Blue": lambda r, g, b: b > 150 and r < 100 and g < 100,
+    "Yellow": lambda r, g, b: r > 150 and g > 150 and b < 100,
+    "Black": lambda r, g, b: r < 50 and g < 50 and b < 50,
+    "White": lambda r, g, b: r > 200 and g > 200 and b > 200,
+    "Orange": lambda r, g, b: r > 200 and g > 100 and b < 80,
+    "Purple": lambda r, g, b: r > 120 and b > 120 and g < 100,
 }
 
-def detect_colors(image):
-    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    found = []
+# ---------------- COLOR DETECTION FUNCTION ---------------- #
+def detect_colors(image_array):
+    detected = set()
+    pixels = image_array.reshape(-1, 3)
 
-    for name, (low, high) in COLOR_RANGES.items():
-        mask = cv2.inRange(hsv, np.array(low), np.array(high))
-        if cv2.countNonZero(mask) > 1500:
-            found.append(name)
+    for r, g, b in pixels[::500]:  # sample pixels
+        for color, rule in COLORS.items():
+            if rule(r, g, b):
+                detected.add(color)
 
-    return list(set(found))
+    return list(detected)
 
-uploaded = st.file_uploader("Upload Image", type=["jpg", "png", "jpeg"])
+# ---------------- IMAGE UPLOAD ---------------- #
+uploaded_file = st.file_uploader(
+    "Upload an Image", type=["jpg", "jpeg", "png"]
+)
 
-if uploaded:
-    img = Image.open(uploaded).convert("RGB")
-    img_np = np.array(img)
-    img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+if uploaded_file:
+    image = Image.open(uploaded_file).convert("RGB")
+    image_array = np.array(image)
 
-    colors = detect_colors(img_bgr)
+    colors_found = detect_colors(image_array)
 
-    st.image(img, caption="Uploaded Image", use_column_width=True)
-    st.success(f"Detected {len(colors)} colors")
-    st.write(colors)
+    st.image(image, caption="Uploaded Image", use_column_width=True)
+
+    st.success(f"Number of Colors Detected: {len(colors_found)}")
+    st.write("Detected Colors:")
+    st.write(colors_found)
